@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Specify the JSON file uploaded
+json_file="KATL_FLIGHTS.json"
+
+# Temporary file for storing results
+temp_file="flight_data_analysis.txt"
+> "$temp_file"
+
+# Process the JSON file
+process_file() {
+    local file=$1
+    total_flights=$(jq '. | length' "$file")
+    delayed_flights=$(jq '[.[] | select(.arrival_delay > 0)] | length' "$file")
+    cancelled_flights=$(jq '[.[] | select(.cancelled == true)] | length' "$file")
+    unique_operators=$(jq -r '[.[] | .operator] | unique | .[]' "$file")
+    avg_delay=$(jq '[.[] | select(.arrival_delay > 0) | .arrival_delay] | add / length' "$file")
+    most_used_runway=$(jq -r '[.[] | .actual_runway_on] | group_by(.) | max_by(length) | .[0]' "$file")
+
+    echo "Results for $file:" >> "$temp_file"
+    echo "Total Flights: $total_flights" >> "$temp_file"
+    echo "Delayed Flights: $delayed_flights" >> "$temp_file"
+    echo "Cancelled Flights: $cancelled_flights" >> "$temp_file"
+    echo "Unique Operators:" >> "$temp_file"
+    echo "$unique_operators" >> "$temp_file"
+    echo "Average Arrival Delay: $avg_delay seconds" >> "$temp_file"
+    echo "Most Used Runway: $most_used_runway" >> "$temp_file"
+    echo "" >> "$temp_file"
+}
+
+# Run the function on the JSON file
+process_file "$json_file"
+
+# Display the results
+cat "$temp_file"
